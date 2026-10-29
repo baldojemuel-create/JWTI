@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>John Wesley Training Institute Portal</title>
+<meta name="description" content="John Wesley Training Institute student and staff portal">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#f7f5fb;--card:#fff;--ink:#231d33;--mut:#6d6783;--line:#e6e1f0;--acc:#6a4fa8;--soft:#eee8fa;--ok:#216a4b;--warn:#8b5c16;--danger:#a43d4c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px Figtree,system-ui,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:11px;background:var(--acc);color:white;padding:11px 15px;font-weight:700}button.secondary{background:var(--soft);color:var(--acc)}button.danger{background:#fae8eb;color:var(--danger)}button:disabled{opacity:.5;cursor:not-allowed}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;background:#fff;color:var(--ink)}label{display:block;font-size:13px;color:var(--mut);font-weight:600;margin:0 0 6px}form{display:grid;gap:12px}.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.logo{width:45px;height:45px;border-radius:14px;background:var(--acc);color:#fff;display:grid;place-items:center;font-weight:800}.brand h1{font:600 25px Newsreader,serif;margin:0}.brand p{margin:3px 0 0;color:var(--mut);font-size:12px}.hero{padding:26px;border-radius:20px;background:linear-gradient(135deg,#30234f,#7256ad);color:white;margin-bottom:18px}.hero h2{font:600 34px Newsreader,serif;margin:0 0 8px}.hero p{margin:0;color:#e9e2f8;line-height:1.5}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:19px;min-width:0}.card h3{margin:0 0 14px;font-size:16px}.auth{max-width:480px;margin:8vh auto}.muted{color:var(--mut)}.small{font-size:12px}.msg{padding:11px 13px;border-radius:10px;background:var(--soft);color:var(--acc);margin:10px 0;white-space:pre-wrap}.msg.error{background:#fae8eb;color:var(--danger)}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.list{display:grid;gap:9px}.item{padding:12px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:start}.item:first-child{border-top:0}.item strong{display:block}.pill{font-size:11px;font-weight:700;padding:5px 8px;border-radius:99px;background:var(--soft);color:var(--acc);white-space:nowrap}.pill.ok{background:#e1f4e9;color:var(--ok)}.pill.warn{background:#fff1d8;color:var(--warn)}.empty{color:var(--mut);font-size:13px;padding:12px 0}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}.stat{padding:15px;background:#fff;border:1px solid var(--line);border-radius:14px}.stat b{display:block;font-size:23px}.stat span{font-size:12px;color:var(--mut)}.section{margin-top:18px}.footer{text-align:center;color:var(--mut);font-size:12px;padding:26px 0}.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);vertical-align:top}.table th{color:var(--mut);font-weight:600}.tablewrap{overflow:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none!important}@media(max-width:720px){.wrap{padding:14px}.grid{grid-template-columns:1fr}.hero h2{font-size:28px}.brand h1{font-size:21px}.stats{grid-template-columns:repeat(3,1fr)}.top{align-items:flex-start}.top button{padding:9px 11px}.card{padding:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="brand"><div class="logo">JW</div><div><h1>John Wesley Training Institute</h1><p>Student & Staff Portal</p></div></div><div id="top-actions"></div></header>
+<main id="app"><div class="auth card"><h2>Loading portal…</h2><p class="muted">Connecting to the school portal.</p></div></main>
+<footer class="footer">John Wesley Training Institute · Secure portal · Keep your sign-in details private</footer>
+</div>
+<script>
+(function(){
+const SUPABASE_URL='https://emylgveeogmtbimcscdz.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3PW9vwg3XW56Z7ekGwTv-g_DYbPAypJ';
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const app=document.getElementById('app'),topActions=document.getElementById('top-actions');
+let user=null,profile=null,notice='',err='',cache={subjects:[],enrollments:[],grades:[],attendance:[],payments:[],applications:[],profiles:[],assignments:[]};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const roleLabel=r=>({student:'Student',teacher:'Teacher',registrar:'Registrar',admin:'Administrator'}[r]||'Student');
+const staff=()=>profile&&['registrar','admin'].includes(profile.role);
+const msg=()=>notice?'<div class="msg">'+esc(notice)+'</div>':err?'<div class="msg error">'+esc(err)+'</div>':'';
+const empty=s=>'<div class="empty">'+esc(s)+'</div>';
+const field=(label,name,type='text',required=true,placeholder='')=>'<div><label for="'+esc(name)+'">'+esc(label)+'</label><input id="'+esc(name)+'" name="'+esc(name)+'" type="'+esc(type)+'" '+(required?'required':'')+' placeholder="'+esc(placeholder)+'"></div>';
+const sel=(label,name,options,required=true)=>'<div><label for="'+esc(name)+'">'+esc(label)+'</label><select id="'+esc(name)+'" name="'+esc(name)+'" '+(required?'required':'')+'>'+options.map(o=>'<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join('')+'</select></div>';
+const card=(title,body)=>'<section class="card"><h3>'+esc(title)+'</h3>'+body+'</section>';
+const date=v=>v?new Date(v).toLocaleDateString():'—';
+function status(s){return '<span class="pill '+(['verified','approved','enrolled','present'].includes(s)?'ok':['pending','late'].includes(s)?'warn':'')+'">'+esc(s||'pending')+'</span>'}
+function list(items,render,none){return items.length?'<div class="list">'+items.map(render).join('')+'</div>':empty(none)}
+function item(title,sub,right){return '<div class="item"><div><strong>'+esc(title)+'</strong><div class="muted small">'+esc(sub||'')+'</div></div><div>'+right+'</div></div>'}
+function showAuth(){topActions.innerHTML='';app.innerHTML='<div class="auth card"><div class="hero"><h2>Welcome back.</h2><p>Sign in to access your student or staff portal.</p></div>'+msg()+'<div class="row"><button class="secondary" data-auth-tab="signin">Sign in</button><button class="secondary" data-auth-tab="signup">Create student account</button></div><form id="auth-form" class="section"><input type="hidden" name="mode" value="signin">'+field('Email address','email','email')+field('Password','password','password')+'<div id="name-field" class="hidden">'+field('Full name','full_name','text')+'</div><button id="auth-submit">Sign in</button></form><p class="muted small">New student accounts start with student access. Staff roles must be assigned by an authorized administrator.</p></div>';document.querySelectorAll('[data-auth-tab]').forEach(b=>b.onclick=()=>{const signup=b.dataset.authTab==='signup';document.querySelector('[name=mode]').value=signup?'signup':'signin';document.getElementById('name-field').classList.toggle('hidden',!signup);document.getElementById('auth-submit').textContent=signup?'Create account':'Sign in';err='';notice='';document.querySelector('.msg')?.remove()})}
+async function ensureProfile(){
+ const {data:p,error:e}=await client.from('profiles').select('*').eq('id',user.id).maybeSingle();
+ if(e)throw e;
+ if(p){if(!p.active)throw new Error('This account is inactive. Contact the school registrar.');profile=p;return}
+ const full=(user.user_metadata&&user.user_metadata.full_name)||user.email||'Student';
+ const {data:n,error}=await client.from('profiles').insert({id:user.id,full_name:full,email:user.email,role:'student'}).select().single();
+ if(error)throw error;profile=n;
+}
+async function load(table,query){const {data,error}=await query;if(error)throw error;cache[table]=data||[]}
+async function refreshData(){
+ await load('subjects',client.from('subjects').select('*').order('code'));
+ await load('enrollments',client.from('enrollments').select('*,subjects(code,name,units)').order('created_at',{ascending:false}));
+ await load('grades',client.from('grades').select('*,subjects(code,name)').order('updated_at',{ascending:false}));
+ await load('attendance',client.from('attendance').select('*,subjects(code,name)').order('attendance_date',{ascending:false}).limit(100));
+ await load('payments',client.from('payments').select('*').order('created_at',{ascending:false}));
+ await load('applications',client.from('applications').select('*').order('created_at',{ascending:false}));
+ if(staff()){
+   await load('profiles',client.from('profiles').select('id,student_code,full_name,email,role,active').order('full_name'));
+   await load('assignments',client.from('teacher_subjects').select('teacher_id,subject_id'));
+ } else if(profile.role==='teacher') {
+   await load('assignments',client.from('teacher_subjects').select('teacher_id,subject_id').eq('teacher_id',user.id));
+ }
+}
+function render(){
+ topActions.innerHTML=user?'<div class="row"><span class="pill">'+esc(roleLabel(profile.role))+'</span><button class="secondary" id="signout">Sign out</button></div>':'';
+ if(!user){showAuth();return}
+ const name=profile.full_name||user.email||'Student';
+ let body='<div class="hero"><h2>Hello, '+esc(name.split(' ')[0])+'.</h2><p>'+esc(roleLabel(profile.role))+' workspace · Your records are protected by account permissions.</p></div>'+msg();
+ body+='<div class="stats"><div class="stat"><b>'+cache.enrollments.length+'</b><span>Enrollments</span></div><div class="stat"><b>'+cache.grades.length+'</b><span>Grade records</span></div><div class="stat"><b>'+cache.payments.length+'</b><span>Payments</span></div></div>';
+ body+='<div class="grid">';
+ body+=card('My profile','<form id="profile-form">'+field('Full name','full_name','text',true)+field('Phone number','phone','tel',false)+field('Student code (assigned by school)','student_code','text',false)+'<button>Save profile</button></form><p class="muted small">Account email: '+esc(user.email||'')+'</p>');
+ if(profile.role==='student'){
+   body+=card('Available subjects',list(cache.subjects.filter(s=>s.active),s=>item(s.code+' · '+s.name,(s.units||'—')+' units · '+s.school_year,'<button class="secondary" data-enroll="'+esc(s.id)+'">Request enrollment</button>'),'No active subjects are available.'));
+   body+=card('My enrollments',list(cache.enrollments,e=>item((e.subjects&&e.subjects.name)||'Subject',e.school_year+' · '+(e.subjects&&e.subjects.code||''),status(e.status)),'No enrollment requests yet.'));
+   body+=card('My grades',list(cache.grades,g=>item((g.subjects&&g.subjects.name)||'Subject',g.school_year+' · '+(g.term||''),'<strong>'+esc(g.grade==null?'Not posted':g.grade)+'</strong>'),'No grades have been posted.'));
+   body+=card('Attendance',list(cache.attendance,a=>item((a.subjects&&a.subjects.name)||'Subject',date(a.attendance_date),status(a.status)),'No attendance records yet.'));
+   body+=card('Submit payment record','<form id="payment-form">'+field('Amount (PHP)','amount','number')+sel('Payment method','payment_method',[{value:'cash',label:'Cash'},{value:'bank_transfer',label:'Bank transfer'},{value:'e_wallet',label:'E-wallet'},{value:'other',label:'Other'}])+field('Reference number','reference_number','text',false)+field('Receipt file path (private upload support to be added)','receipt_path','text',false)+'<button>Submit for verification</button></form><p class="muted small">This records a pending payment for staff verification; it does not process a payment.</p>');
+   body+=card('My payments',list(cache.payments,p=>item('₱'+Number(p.amount).toLocaleString(),date(p.created_at)+' · '+(p.reference_number||p.payment_method||''),status(p.status)),'No payment records yet.'));
+   body+=card('Enrollment application','<form id="application-form">'+field('Applicant full name','applicant_name','text')+field('Email','applicant_email','email',false)+field('Phone','applicant_phone','tel',false)+field('Program','program','text',false)+'<div><label for="details">Additional information</label><textarea id="details" name="details" rows="3" placeholder="Program or enrollment notes"></textarea></div><button>Submit application</button></form>'+list(cache.applications,a=>item(a.applicant_name,a.program||date(a.created_at),status(a.status)),'No applications yet.'));
+ } else if(profile.role==='teacher'){
+   const assigned=cache.assignments.map(a=>cache.subjects.find(s=>s.id===a.subject_id)).filter(Boolean);
+   body+=card('My assigned subjects',list(assigned,s=>item(s.code+' · '+s.name,s.school_year,(s.active?status('active'):status('inactive'))),'No subjects have been assigned. Ask the registrar to assign subjects.'));
+   body+=card('Record grade','<form id="grade-form">'+sel('Assigned subject','subject_id',[{value:'',label:'Choose subject'},...assigned.map(s=>({value:s.id,label:s.code+' · '+s.name}))])+field('Student account UUID','student_id','text')+field('School year','school_year','text',true,'e.g. 2026-2027')+field('Term','term','text',false,'First semester')+field('Grade (0–100)','grade','number')+field('Remarks','remarks','text',false)+'<button>Save grade</button></form><p class="muted small">Use the student UUID provided by the school system, not a student ID typed from an untrusted source.</p>');
+   body+=card('Record attendance','<form id="attendance-form">'+sel('Assigned subject','subject_id',[{value:'',label:'Choose subject'},...assigned.map(s=>({value:s.id,label:s.code+' · '+s.name}))])+field('Student account UUID','student_id','text')+field('Date','attendance_date','date')+sel('Status','status',[{value:'present',label:'Present'},{value:'absent',label:'Absent'},{value:'late',label:'Late'},{value:'excused',label:'Excused'}])+field('Notes','notes','text',false)+'<button>Save attendance</button></form>');
+   body+=card('Recent grade records',list(cache.grades,g=>item((g.subjects&&g.subjects.name)||'Subject','Student '+g.student_id+' · '+g.school_year,'<strong>'+esc(g.grade==null?'Not posted':g.grade)+'</strong>'),'No grade records visible.'));
+ } else if(staff()){
+   body+=card('Student & staff accounts',list(cache.profiles,p=>item(p.full_name||p.email,p.student_code||p.email||p.id,status(p.role)),'No profiles exist yet.'));
+   body+=card('Create subject','<form id="subject-form">'+field('Subject code','code','text')+field('Subject name','name','text')+field('Units','units','number')+field('School year','school_year','text',true,'2026-2027')+field('Semester','semester','text',false)+'<button>Create subject</button></form>');
+   body+=card('Assign teacher to subject','<form id="assign-form">'+sel('Teacher account','teacher_id',[{value:'',label:'Choose teacher'},...cache.profiles.filter(p=>p.role==='teacher').map(p=>({value:p.id,label:p.full_name+' ('+p.email+')'}))])+sel('Subject','subject_id',[{value:'',label:'Choose subject'},...cache.subjects.map(s=>({value:s.id,label:s.code+' · '+s.name}))])+'<button>Assign subject</button></form>');
+   body+=card('Applications for review',list(cache.applications,a=>item(a.applicant_name,a.program||a.applicant_email,status(a.status)+' <button class="secondary" data-app-approve="'+esc(a.id)+'">Approve</button>'),'No applications submitted.'));
+   body+=card('Payment verification',list(cache.payments.filter(p=>p.status==='pending'),p=>item('₱'+Number(p.amount).toLocaleString(),'Student '+p.student_id+' · '+(p.reference_number||'No reference'),'<button class="secondary" data-payment-verify="'+esc(p.id)+'">Mark verified</button>'),'No pending payments.'));
+   body+=card('Recent enrollments',list(cache.enrollments,e=>item((e.subjects&&e.subjects.name)||'Subject','Student '+e.student_id+' · '+e.school_year,status(e.status)),'No enrollment requests.'));
+ }
+ body+='</div>';
+ app.innerHTML=body;
+ const pf=document.getElementById('profile-form');if(pf){pf.full_name.value=profile.full_name||'';pf.phone.value=profile.phone||'';pf.student_code.value=profile.student_code||'';pf.student_code.disabled=!staff()}
+}
+async function run(action){err='';notice='';try{await action();if(user)await refreshData();render()}catch(e){console.error(e);err=e.message||'Something went wrong. Please try again.';render()}}
+document.addEventListener('submit',async e=>{
+ const f=e.target;if(!f.matches('form'))return;e.preventDefault();const d=new FormData(f),v=Object.fromEntries(d.entries());
+ if(f.id==='auth-form'){return run(async()=>{const mode=v.mode;if(mode==='signup'){const {data,error}=await client.auth.signUp({email:v.email,password:v.password,options:{data:{full_name:v.full_name}}});if(error)throw error;if(data.session){user=data.user;await ensureProfile();notice='Student account created.'}else notice='Account created. Check your email to confirm it, then sign in.';err='';await render() }else{const {data,error}=await client.auth.signInWithPassword({email:v.email,password:v.password});if(error)throw error;user=data.user;await ensureProfile();notice='Signed in.'}})}
+ if(f.id==='profile-form')return run(async()=>{const patch={full_name:v.full_name.trim(),phone:v.phone.trim()||null};if(staff()&&v.student_code.trim())patch.student_code=v.student_code.trim();const {data,error}=await client.from('profiles').update(patch).eq('id',user.id).select().single();if(error)throw error;profile=data;notice='Profile saved.'});
+ if(f.id==='payment-form')return run(async()=>{const amount=Number(v.amount);if(!Number.isFinite(amount)||amount<0)throw new Error('Enter a valid amount.');const {error}=await client.from('payments').insert({student_id:user.id,amount,currency:'PHP',payment_method:v.payment_method,reference_number:v.reference_number||null,receipt_path:v.receipt_path||null,status:'pending'});if(error)throw error;notice='Payment record submitted for verification.'});
+ if(f.id==='application-form')return run(async()=>{const {error}=await client.from('applications').insert({applicant_id:user.id,applicant_name:v.applicant_name,applicant_email:v.applicant_email||user.email,applicant_phone:v.applicant_phone||null,program:v.program||null,details:{notes:v.details||''},status:'pending'});if(error)throw error;notice='Application submitted.'});
+ if(f.id==='subject-form')return run(async()=>{const {error}=await client.from('subjects').insert({code:v.code.trim(),name:v.name.trim(),units:Number(v.units)||3,school_year:v.school_year.trim(),semester:v.semester||null});if(error)throw error;notice='Subject created.'});
+ if(f.id==='assign-form')return run(async()=>{if(!v.teacher_id||!v.subject_id)throw new Error('Choose a teacher and subject.');const {error}=await client.from('teacher_subjects').insert({teacher_id:v.teacher_id,subject_id:v.subject_id});if(error)throw error;notice='Teacher assigned.'});
+ if(f.id==='grade-form')return run(async()=>{if(!cache.assignments.some(a=>a.subject_id===v.subject_id))throw new Error('You are not assigned to that subject.');const {error}=await client.from('grades').upsert({student_id:v.student_id.trim(),subject_id:v.subject_id,teacher_id:user.id,school_year:v.school_year.trim(),term:v.term||null,grade:Number(v.grade),remarks:v.remarks||null},{onConflict:'student_id,subject_id,school_year,term'});if(error)throw error;notice='Grade saved.'});
+ if(f.id==='attendance-form')return run(async()=>{if(!cache.assignments.some(a=>a.subject_id===v.subject_id))throw new Error('You are not assigned to that subject.');const {error}=await client.from('attendance').upsert({student_id:v.student_id.trim(),subject_id:v.subject_id,teacher_id:user.id,attendance_date:v.attendance_date,status:v.status,notes:v.notes||null},{onConflict:'student_id,subject_id,attendance_date'});if(error)throw error;notice='Attendance saved.'});
+});
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.id==='signout'){await client.auth.signOut();user=null;profile=null;cache={subjects:[],enrollments:[],grades:[],attendance:[],payments:[],applications:[],profiles:[],assignments:[]};notice='';err='';render();return}
+ if(b.dataset.enroll)return run(async()=>{const s=cache.subjects.find(x=>x.id===b.dataset.enroll);if(!s)throw new Error('Subject not found.');const {error}=await client.from('enrollments').insert({student_id:user.id,subject_id:s.id,school_year:s.school_year,status:'pending'});if(error)throw error;notice='Enrollment request submitted.'});
+ if(b.dataset.appApprove)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('applications').update({status:'approved',reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq('id',b.dataset.appApprove);if(error)throw error;notice='Application approved.'});
+ if(b.dataset.paymentVerify)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('payments').update({status:'verified',verified_by:user.id,paid_at:new Date().toISOString()}).eq('id',b.dataset.paymentVerify);if(error)throw error;notice='Payment marked verified.'});
+});
+client.auth.onAuthStateChange(async(_event,session)=>{
+ if(session&&session.user){user=session.user;try{await ensureProfile();await refreshData();err='';render()}catch(e){err=e.message||'Unable to load your profile.';render()}}
+ else{user=null;profile=null;render()}
+});
+})();
+</script>
+</body></html>
