@@ -43,7 +43,7 @@ The original Claude Artifact HTML has been preserved at [`legacy-claude-artifact
    ```
 
 5. Sign out and sign back in so the portal loads the new role.
-6. Create staff accounts through the approved account-provisioning process and assign each teacher's subjects. **Do not make public sign-up accept staff roles.**
+6. For each teacher, have them create a normal account and sign in once. Then, as the administrator, promote that exact email from the Supabase SQL Editor with `update public.profiles set role = 'teacher' where email = 'TEACHER-EMAIL-HERE';`. The teacher should sign out and back in, then you can assign their subjects from the portal. This is a temporary manual provisioning step; a secure staff-provisioning workflow still needs to be built. **Do not make public sign-up accept staff roles.**
 
 Only run the role-promotion query for an account you control. Role changes must remain an administrator-only operation.
 
