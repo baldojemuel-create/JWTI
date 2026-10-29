@@ -88,7 +88,7 @@ function render(){
    body+=card('Assign teacher to subject','<form id="assign-form">'+sel('Teacher account','teacher_id',[{value:'',label:'Choose teacher'},...cache.profiles.filter(p=>p.role==='teacher').map(p=>({value:p.id,label:p.full_name+' ('+p.email+')'}))])+sel('Subject','subject_id',[{value:'',label:'Choose subject'},...cache.subjects.map(s=>({value:s.id,label:s.code+' · '+s.name}))])+'<button>Assign subject</button></form>');
    body+=card('Applications for review',list(cache.applications,a=>item(a.applicant_name,a.program||a.applicant_email,status(a.status)+' <button class="secondary" data-app-approve="'+esc(a.id)+'">Approve</button>'),'No applications submitted.'));
    body+=card('Payment verification',list(cache.payments.filter(p=>p.status==='pending'),p=>item('₱'+Number(p.amount).toLocaleString(),'Student '+p.student_id+' · '+(p.reference_number||'No reference'),'<button class="secondary" data-payment-verify="'+esc(p.id)+'">Mark verified</button>'),'No pending payments.'));
-   body+=card('Recent enrollments',list(cache.enrollments,e=>item((e.subjects&&e.subjects.name)||'Subject','Student '+e.student_id+' · '+e.school_year,status(e.status)),'No enrollment requests.'));
+   body+=card('Recent enrollments',list(cache.enrollments,e=>item((e.subjects&&e.subjects.name)||'Subject','Student '+e.student_id+' · '+e.school_year,status(e.status)+(e.status==='pending'?' <button class="secondary" data-enroll-approve="'+esc(e.id)+'">Approve</button>':'')),'No enrollment requests.'));
  }
  body+='</div>';
  app.innerHTML=body;
@@ -110,6 +110,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.id==='signout'){await client.auth.signOut();user=null;profile=null;cache={subjects:[],enrollments:[],grades:[],attendance:[],payments:[],applications:[],profiles:[],assignments:[]};notice='';err='';render();return}
  if(b.dataset.enroll)return run(async()=>{const s=cache.subjects.find(x=>x.id===b.dataset.enroll);if(!s)throw new Error('Subject not found.');const {error}=await client.from('enrollments').insert({student_id:user.id,subject_id:s.id,school_year:s.school_year,status:'pending'});if(error)throw error;notice='Enrollment request submitted.'});
+ if(b.dataset.enrollApprove)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('enrollments').update({status:'approved'}).eq('id',b.dataset.enrollApprove);if(error)throw error;notice='Enrollment approved.'});
  if(b.dataset.appApprove)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('applications').update({status:'approved',reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq('id',b.dataset.appApprove);if(error)throw error;notice='Application approved.'});
  if(b.dataset.paymentVerify)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('payments').update({status:'verified',verified_by:user.id,paid_at:new Date().toISOString()}).eq('id',b.dataset.paymentVerify);if(error)throw error;notice='Payment marked verified.'});
 });
