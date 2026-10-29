@@ -2,9 +2,9 @@
 
 Repository: https://github.com/baldojemuel-create/JWTI
 
-## Hosting
+## Live website
 
-A GitHub Actions workflow is configured at `.github/workflows/pages.yml` to publish this repository to GitHub Pages when commits are pushed to `main`. In **Settings → Pages**, select **GitHub Actions** as the deployment source. Then check the Actions tab for the deployment URL and result.
+The site homepage is now a Supabase-connected portal MVP. GitHub Pages deployment runs are available under [Actions](https://github.com/baldojemuel-create/JWTI/actions). Check the latest run for deployment status and the published URL.
 
 ## Supabase project
 
@@ -13,34 +13,45 @@ A GitHub Actions workflow is configured at `.github/workflows/pages.yml` to publ
 - Region: Singapore (`ap-southeast-1`)
 - Project URL: https://emylgveeogmtbimcscdz.supabase.co
 
-An initial relational schema has been created for profiles, subjects, teacher assignments, enrollments, grades, attendance, payments, applications, school settings, and audit logs. Row Level Security is enabled on all public tables. A private `private-receipts` Storage bucket has also been created.
+The initial schema is in place for profiles, subjects, teacher assignments, enrollments, grades, attendance, payments, applications, school settings, and audit logs. RLS is enabled for all public tables. Receipt Storage bucket `private-receipts` is private. The Supabase security advisor reported no security findings after setup.
 
-## Important: frontend migration is still required
+## Current portal MVP
 
-The existing `index.html` uses Claude Artifact's `window.claude.use('db')` and `onSnapshot` APIs. GitHub Pages does not provide these APIs, and the current page has **not yet been migrated to Supabase**. Publishing the static file alone will not make login, student records, grades, attendance, enrollment, payments, or receipts work.
+- Email/password sign-in and student account creation using Supabase Auth.
+- Profile editing.
+- Student enrollment requests and application submissions.
+- Student grade, attendance, and payment views.
+- Teacher subject assignment view and grade/attendance entry.
+- Registrar/admin views for profiles, applications, payments, subject creation, and teacher assignments.
+- Database-enforced row-level access controls.
 
-The existing app uses custom student IDs and PINs plus document-style collection records. The new schema uses Supabase Auth UUIDs and relational tables, so the data layer and authentication UI must be refactored together. Do not use a client-side shim that gives every logged-in user access to all records.
+This is a migration MVP, **not full feature parity with the original portal**. Some workflows from the legacy app (including legacy ID/PIN account migration, full profile/enrollment forms, bulk enrollment, reports, receipt uploads, audit logging, and administrative account provisioning) still require implementation and testing. Do not use production student data until the remaining workflows and role boundaries are verified.
 
-### Security requirements before real use
+The original Claude Artifact HTML has been preserved at [`legacy-claude-artifact.html`](./legacy-claude-artifact.html) for reference. It uses `window.claude.use('db')`, which is unavailable on GitHub Pages and is not used by the new homepage.
 
-- Use Supabase Auth identities; never treat client-side role/ID/PIN checks as authorization.
-- Enable and test row-level security (RLS) on every exposed table.
+## First-time setup
+
+1. Open the deployed site and create a student account with the email address you will use as the initial administrator.
+2. Confirm the email if Supabase Auth asks you to.
+3. Sign in once so the student's profile row is created.
+4. In the Supabase Dashboard, open **SQL Editor** for this project and run the following after replacing the email with your own account email:
+
+   ```sql
+   update public.profiles
+   set role = 'admin'
+   where email = 'YOUR-ADMIN-EMAIL-HERE';
+   ```
+
+5. Sign out and sign back in so the portal loads the new role.
+6. Create staff accounts through the approved account-provisioning process and assign each teacher's subjects. **Do not make public sign-up accept staff roles.**
+
+Only run the role-promotion query for an account you control. Role changes must remain an administrator-only operation.
+
+## Security requirements before real use
+
+- Never put a Supabase service-role or secret key in browser code. The public publishable key in the frontend is intended for browser use only with RLS correctly configured.
 - Students must only access their own profile, grades, enrollment, attendance, and payment records.
-- Teachers must only access records for their assigned subjects.
-- Validate registrar/admin actions on the server.
-- Never put a Supabase service-role or secret key in browser code. A publishable key is designed for client use when RLS is correctly configured.
-- Keep receipts in the private Storage bucket; do not expose PIN vault records, application signatures, or audit logs to public users.
-- Test role boundaries and all write operations before importing real student data.
-
-## Current status
-
-- [x] Supabase project created.
-- [x] Initial relational schema and RLS policies applied.
-- [x] Private receipt Storage bucket created.
-- [x] Foreign-key indexes added.
-- [x] Security advisor checked (no security findings reported at the time of setup).
-- [x] GitHub Pages deployment workflow added.
-- [ ] Refactor frontend authentication and data access.
-- [ ] Add secure registrar/admin account provisioning.
-- [ ] Test all portal workflows and RLS boundaries.
-- [ ] Confirm the GitHub Pages deployment succeeds.
+- Teachers must only access records for assigned subjects.
+- Validate privileged registrar/admin operations on the server.
+- Keep receipts in private Storage; do not expose PIN vault records, signatures, or audit logs to public users.
+- Test authentication, RLS boundaries, and all write operations before importing production records.
