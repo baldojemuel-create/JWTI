@@ -1,6 +1,16 @@
 # Supabase migration plan
 
-The current app uses `window.claude.use('db')` and Firestore-like calls such as `db.collection(name).doc(id).set(...)`, `update(...)`, `get()`, `delete()`, and `onSnapshot(...)`. GitHub Pages cannot provide these APIs. A safe migration requires both database schema and frontend authentication/data-access changes.
+## Project
+
+- Project ref: `emylgveeogmtbimcscdz`
+- Region: Singapore (`ap-southeast-1`)
+- URL: `https://emylgveeogmtbimcscdz.supabase.co`
+
+## Status
+
+The initial database schema has been applied. It includes `profiles`, `subjects`, `teacher_subjects`, `enrollments`, `grades`, `attendance`, `payments`, `applications`, `school_settings`, and `audit_logs`. All tables in the exposed `public` schema have RLS enabled. Receipt uploads use a private Storage bucket named `private-receipts`.
+
+The frontend is not yet migrated. The current app uses `window.claude.use('db')` and Firestore-like calls such as `db.collection(name).doc(id).set(...)`, `update(...)`, `get()`, `delete()`, and `onSnapshot(...)`. GitHub Pages cannot provide these APIs. The legacy ID/PIN and role-selector login must be replaced or supported by a carefully designed server-side authentication flow; the database schema alone does not make the existing page work.
 
 ## Data areas identified in the existing source
 
@@ -10,26 +20,27 @@ The current app uses `window.claude.use('db')` and Firestore-like calls such as 
 - `admit`, `enrollment`, `grades`: year-specific subject admission, enrollment options, and grades.
 - `attendance`: attendance entries.
 - `payments`, `receipts`: payment records and receipt images/data.
-- `applications`: enrollment requests.
+- `applications`: enrollment requests, including signed application information.
 - `settings`: active school year and registrar settings.
 - `pins`: encrypted legacy PIN vault records.
 - `log`: audit events.
 
 ## Required sequence
 
-1. Connect the intended Supabase project and inspect its existing tables/migrations.
-2. Design relational tables, constraints, and a data export/import process for existing records.
-3. Replace the legacy client-side ID/PIN flow with Supabase Auth and a protected role mapping.
-4. Enable RLS and verify policies for anonymous users, students, teachers, and registrar/admins.
-5. Replace whole-collection subscriptions with scoped queries and Realtime subscriptions only where necessary.
-6. Move privileged account creation, PIN resets, and other registrar-only operations into server-side Edge Functions.
-7. Move receipts to a private Supabase Storage bucket with authenticated access.
-8. Test enrollment, grades, attendance, payments, receipts, exports, and role boundaries.
-9. Deploy the migrated frontend only after security tests pass.
+1. Map legacy fields and document IDs to the relational schema; define a controlled export/import plan if existing records need migration.
+2. Implement Supabase Auth and a protected role mapping. Do not trust role values supplied by the browser or user-editable metadata.
+3. Replace whole-collection subscriptions with scoped relational queries and Realtime subscriptions only where needed.
+4. Implement controlled registrar/admin provisioning and PIN reset flows using server-side Edge Functions, if ID/PIN login must be preserved.
+5. Enforce least-privilege RLS for anonymous users, students, teachers, and registrar/admins.
+6. Move receipts to the private Storage bucket using authenticated uploads and downloads.
+7. Test enrollment, grades, attendance, payments, receipts, reports, exports, and role-boundary cases.
+8. Confirm the GitHub Pages Actions deployment and test the published site.
+9. Import production student records only after security tests pass.
 
 ## Do not
 
 - Put a Supabase service-role/secret key in `index.html`.
 - Grant broad access to every authenticated user.
-- import legacy PINs as trusted authentication credentials without a deliberate reset/migration policy.
-- Use real student records until policies and workflows have been verified.
+- Import legacy PINs as trusted authentication credentials without a deliberate reset/migration policy.
+- Make application signatures or receipts public.
+- Use real student records until the policies and workflows have been verified.
