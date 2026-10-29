@@ -114,9 +114,42 @@ document.addEventListener('click',async e=>{
  if(b.dataset.appApprove)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('applications').update({status:'approved',reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq('id',b.dataset.appApprove);if(error)throw error;notice='Application approved.'});
  if(b.dataset.paymentVerify)return run(async()=>{if(!staff())throw new Error('Not authorized.');const {error}=await client.from('payments').update({status:'verified',verified_by:user.id,paid_at:new Date().toISOString()}).eq('id',b.dataset.paymentVerify);if(error)throw error;notice='Payment marked verified.'});
 });
-client.auth.onAuthStateChange(async(_event,session)=>{
- if(session&&session.user){user=session.user;try{await ensureProfile();await refreshData();err='';render()}catch(e){err=e.message||'Unable to load your profile.';render()}}
- else{user=null;profile=null;render()}
+let authHandling = false;
+async function handleAuthSession(session){
+ if(authHandling)return;
+ authHandling=true;
+ try{
+  if(session&&session.user){
+   user=session.user;
+   await ensureProfile();
+   await refreshData();
+   err='';
+  }else{
+   user=null;profile=null;
+   cache={subjects:[],enrollments:[],grades:[],attendance:[],payments:[],applications:[],profiles:[],assignments:[]};
+   err='';
+  }
+ }catch(e){
+  err=(e&&e.message)||'Unable to load your profile. Please refresh and try again.';
+ }finally{
+  authHandling=false;
+  render();
+ }
+}
+client.auth.onAuthStateChange((_event,session)=>{
+ // Do not await Supabase requests inside the auth callback; the auth lock may be held.
+ Promise.resolve().then(()=>handleAuthSession(session));
+});
+// Explicit startup fallback so the portal still renders if the initial auth event is delayed.
+Promise.resolve().then(async()=>{
+ try{
+  const {data,error}=await client.auth.getSession();
+  if(error)throw error;
+  await handleAuthSession(data.session);
+ }catch(e){
+  err=(e&&e.message)||'Could not connect to the portal. Please refresh or try again later.';
+  user=null;profile=null;render();
+ }
 });
 })();
 </script>
